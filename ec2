@@ -1,0 +1,222 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "create vpc",
+    "Resources": {
+        "myVPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "192.168.0.0/16",
+                "EnableDnsHostnames": "true",
+                "Tags" : [
+                    {
+                       "Key" : "name",
+                       "Value" : "myVPC"
+                    }
+                   
+                ]
+            }
+        },
+        "igw": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+                "Tags" : [
+                    {
+                       "Key" : "name",
+                       "Value" : "igw"
+                    }
+                   
+                 ]
+            }
+        },
+        "AttachGateway": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "myVPC"
+                },
+                "InternetGatewayId": {
+                    "Ref": "igw"
+                }
+                
+            }
+        },
+        "publicrt": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "myVPC"
+                }
+            ,
+            "Tags" : [
+                {
+                   "Key" : "name",
+                   "Value" : "publicrt"
+                }
+               
+            ]
+        }
+    },
+        "myRoute": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "publicrt"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "igw"
+                }
+            }
+        },
+        "privatert": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "myVPC"
+                },
+                "Tags" : [
+                    {
+                       "Key" : "name",
+                       "Value" : "privatert"
+                    }
+                  
+                 ]
+            }
+        },
+        "publicsub": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "myVPC"
+                },
+                "CidrBlock": "192.168.0.0/24",
+                "AvailabilityZone": "us-west-2a",
+                "Tags" : [
+                    {
+                       "Key" : "name",
+                       "Value" : "publicsub"
+                    }
+                    
+                 ]
+            }
+        },
+        "subnetassociationa": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "publicsub"
+                },
+                "RouteTableId": {
+                    "Ref": "publicrt"
+                }
+               
+            }
+        },
+        "privatesub": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "myVPC"
+                },
+                "CidrBlock": "192.168.1.0/24",
+                "AvailabilityZone": "us-west-2a",
+                "Tags" : [
+                    {
+                       "Key" : "name",
+                       "Value" : "privatesub"
+                    }
+                   
+                 ]
+            }
+        },
+        "Subnetassociationb": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "privatesub"
+                },
+                "RouteTableId": {
+                    "Ref": "privatert"
+                }
+               
+            }
+        },
+        "Securitygroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allow http to client host",
+                "VpcId": {
+                    "Ref": "myVPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": 22,
+                        "ToPort": 22,
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": 80,
+                        "ToPort": 80,
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "Tags" : [
+                    {
+                       "Key" : "name",
+                       "Value" : "securitygroup"
+                    }
+                   
+                 ]
+
+            }
+        },
+        "Ec2": {
+            "Type": "AWS::EC2::Instance",
+            "Properties":{
+                "AvailabilityZone": "us-west-2a",
+                "ImageId": "ami-06e54d05255faf8f6",
+                "InstanceType": "t2.micro",
+                "KeyName": "key9",
+                "NetworkInterfaces": [
+                    {
+                        "AssociatePublicIpAddress": "true",
+                        "DeviceIndex": 0,
+                        "GroupSet": [
+                            {
+                                "Ref": "Securitygroup"
+                            }
+                        ],
+                        "SubnetId": {
+                            "Ref": "publicsub"
+                        }
+                    }
+                ],
+                "Tags" : [
+                    {
+                       "Key" : "name",
+                       "Value" : "ec2"
+                    }
+                   
+                 ],
+            
+     
+            "UserData": {
+                "Fn::Base64": {
+                    "Fn::Join": [
+                        "\n",
+                        [
+                            "#!/bin/bash",
+                            "sudo apt-get update",
+                            "sudo apt-get install apache2 -y"
+                        ]
+                    ]
+                }
+            }
+        }
+    }
+    }
+}
