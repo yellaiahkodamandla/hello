@@ -5,6 +5,7 @@
     apt:
      name: tomcat8
      state: present
+     update_cache: yes
   - name : install apache2
     apt:
       name: apache2
